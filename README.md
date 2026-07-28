@@ -152,6 +152,13 @@ routes/api.php
 tests/Feature/Webhooks/                  ← HMAC + dispatch tests
 ```
 
+## Known gaps
+
+- **Coarse-grained idempotency in `ForwardOrderToErp`.** The job is `ShouldBeUnique` and also short-circuits on retry if a `synced_orders` row already exists. If the ERP insert + DB write succeed but `ShopifyAdminClient::addOrderTag` throws (or times out), the retry hits the "already synced" branch and returns early — so the tag never lands, and the order stays untagged in Shopify. The right pattern here is **step-level idempotency** or a **saga with a compensating transaction** for the tag step: track each side effect independently and let retries advance the parts that didn't complete, not re-run the whole job.
+- **`ShopifyAdminClient` methods are illustrative stubs.** `quantityFor`, `setBySku`, and `skusOnOpenOrders` return placeholders; the reconciliation loop won't do real work until they're wired to GraphQL. Bodies for `addOrderTag` / `setInventoryLevel` / `skuForInventoryItem` are shaped for REST but haven't been round-tripped against a real dev store.
+- **Ops endpoints are open in demo.** `/api/sync/*` and `/api/dlq/*` sit without auth. Sanctum is scaffolded but the `HasApiTokens` trait isn't on `User` yet — add it and gate these routes before this reaches anything shared.
+- **No metrics or tracing.** Structured logs only. `Http::retry()` retries are invisible outside the log — add counters + a histogram of ERP call latency before treating an SLI seriously.
+
 ## Notes for production
 
 - Swap `SHOPIFY_ADMIN_TOKEN` / `SHOPIFY_WEBHOOK_SECRET` to a secrets manager. Never commit real values.
