@@ -1,0 +1,70 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8080
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: shopify_erp
+      DB_USERNAME: app
+      DB_PASSWORD: app
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      SHOPIFY_WEBHOOK_SECRET: dev-secret-change-me
+      SHOPIFY_STORE_DOMAIN: your-store.myshopify.com
+      SHOPIFY_ADMIN_TOKEN: shpat_dev_placeholder
+      ERP_BASE_URL: http://mock-erp:3000
+      ERP_API_KEY: dev-erp-key
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    volumes:
+      - ./:/var/www/html
+      - vendor:/var/www/html/vendor
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shopify_erp
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d shopify_erp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mock-erp:
+    image: node:20-alpine
+    working_dir: /app
+    command: node server.js
+    volumes:
+      - ./docker/mock-erp:/app
+    ports:
+      - "3001:3000"
+
+volumes:
+  pgdata:
+  vendor:
