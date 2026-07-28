@@ -2,11 +2,11 @@ services:
   app:
     build: .
     ports:
-      - "8080:8080"
+      - "9080:8080"
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: http://localhost:8080
+      APP_URL: http://localhost:9080
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
@@ -29,6 +29,8 @@ services:
     volumes:
       - ./:/var/www/html
       - vendor:/var/www/html/vendor
+      - app-storage:/var/www/html/storage
+      - app-bootstrap-cache:/var/www/html/bootstrap/cache
 
   postgres:
     image: postgres:16-alpine
@@ -68,3 +70,5 @@ services:
 volumes:
   pgdata:
   vendor:
+  app-storage:
+  app-bootstrap-cache:

@@ -17,7 +17,6 @@ RUN apk add --no-cache \
     bcmath \
     opcache \
     zip \
-    sockets \
  && pecl install redis \
  && docker-php-ext-enable redis \
  && apk del autoconf build-base
@@ -33,11 +32,12 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+RUN composer install --no-scripts --no-autoloader --prefer-dist
 
 COPY . .
 
-RUN composer dump-autoload --optimize --no-dev \
+RUN rm -f bootstrap/cache/*.php \
+ && composer dump-autoload --optimize \
  && chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 8080
